@@ -1,0 +1,64 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    box-shadow: 0 0 50px rgba(0, 174, 239, 0.3);
+    border: 1px solid #333;
+}
+
+/* --- Lead Capture Overlay --- */
+#lead-capture-form {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    z-index: 100;
+}
+
+.terminal-input {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00AEEF; /* C9 Blue */
+    color: #23D18B; /* Terminal Green */
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    padding: 10px;
+    width: 250px;
+    outline: none;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.terminal-input::placeholder {
+    color: #005577; /* C9 Dark */
+}
+
+.terminal-btn {
+    background: #00AEEF;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-size: 18px;
+    font-family: 'Impact', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.terminal-btn:hover {
+    background: #FFFFFF;
+}
+
+.hidden {
+    display: none !important;
+}
