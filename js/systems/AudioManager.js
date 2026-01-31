@@ -6,6 +6,11 @@ class AudioManager {
 
         // Initialize SFX Context (Keep the Synth!)
         this.initSynth();
+
+        // NEW: Pre-load voices (Chrome needs this kickstart)
+        if (window.speechSynthesis) {
+            window.speechSynthesis.getVoices();
+        }
     }
 
     initSynth() {
@@ -122,5 +127,43 @@ class AudioManager {
                 osc.start(t); osc.stop(t + 0.2);
                 break;
         }
+    }
+
+    speak(text, type = 'normal') {
+        if (!window.speechSynthesis) return;
+        
+        // Cancel any currently speaking text so they don't queue up
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Default AI Settings
+        utterance.volume = 1;  // Max volume
+        utterance.rate = 1.1;  // 10% faster (more robotic)
+        utterance.pitch = 1.2; // Higher pitch (female/AI trope)
+
+        // Custom Tones
+        if (type === 'brave') {
+            utterance.pitch = 1.3;
+            utterance.rate = 1.2; // Excited
+        } else if (type === 'critical') {
+            utterance.pitch = 0.8; // Low pitch (System Failure sound)
+            utterance.rate = 0.9;
+        }
+
+        // Voice Selection Strategy
+        const voices = window.speechSynthesis.getVoices();
+        
+        // Try to find a specific "good" voice
+        // "Google US English" is great on Chrome. "Samantha" is great on Mac. "Zira" on Windows.
+        const preferredVoice = voices.find(v => 
+            v.name.includes('Google US English') || 
+            v.name.includes('Zira') || 
+            v.name.includes('Samantha')
+        );
+
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        window.speechSynthesis.speak(utterance);
     }
 }

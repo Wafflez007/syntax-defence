@@ -18,7 +18,15 @@ class GameScene extends Phaser.Scene {
         this.audio = new AudioManager(this);
         
         this.audio.startMusic();
+
+        this.time.delayedCall(500, () => {
+            this.audio.speak("System Online. Protect the Core.");
+        });
+
         this.createBackgroundGrid();
+        this.handInput = new HandInputManager(this);
+        this.handInput.start();
+        this.input.setDefaultCursor('none');
 
         // 3. Init Entities
         // Core
@@ -40,12 +48,6 @@ class GameScene extends Phaser.Scene {
         this.time.addEvent({ delay: 800, callback: this.spawnEnemy, callbackScope: this, loop: true });
         this.time.addEvent({ delay: 3000, callback: this.spawnToken, callbackScope: this, loop: true });
         this.time.addEvent({ delay: 1000, callback: this.updateTimer, callbackScope: this, loop: true });
-
-        // 5. Input
-        this.input.on('pointermove', (pointer) => {
-            if (!this.isPlaying) return;
-            this.shieldContainer.rotation = Phaser.Math.Angle.Between(cx, cy, pointer.x, pointer.y);
-        });
 
         // Brave Mode UI Overlay
         this.braveOverlay = this.add.rectangle(400, 300, 800, 600, COLORS.C9_BLUE).setAlpha(0).setDepth(20);
@@ -71,9 +73,26 @@ class GameScene extends Phaser.Scene {
         // 2. If Normal, adjust pitch based on panic timer
         this.audio.updateMusicPitch(this.timeLeft);
 
+        this.handleInput();
+
         // Physics Logic
         this.handleCollisions();
         this.handleMovement();
+    }
+
+    handleInput() {
+        const cx = this.cameras.main.centerX;
+        const cy = this.cameras.main.centerY;
+        
+        // Get coordinates from MediaPipe (or fallback to mouse if tracking fails)
+        let pointer = this.handInput.getPointer();
+        
+        // Calculate angle
+        const angle = Phaser.Math.Angle.Between(cx, cy, pointer.x, pointer.y);
+        
+        // Rotate Shield (Smoothly via LERP for better feel)
+        const currentRot = this.shieldContainer.rotation;
+        this.shieldContainer.rotation = Phaser.Math.Angle.RotateTo(currentRot, angle, 0.1); 
     }
 
     handleMovement() {
@@ -151,26 +170,43 @@ class GameScene extends Phaser.Scene {
     }
 
     destroyEnemy(enemy, blocked) {
-        enemy.destroy();
+        // 1. Check if blocked logic FIRST (while enemy still exists)
         if (blocked) {
             this.score += 100;
             this.ui.updateScore(this.score);
             
-            // Delegate FX and Audio to managers
+            // Check Type
             if (enemy.texture.key === 'enemy_heavy') {
+                // --- Heavy Logic ---
                 this.audio.playSFX('hit_heavy');
                 this.fx.explodeHeavy(enemy.x, enemy.y);
                 this.fx.vibrate(50);
+
+                // HIT STOP (Freeze Frame)
+                this.physics.world.pause();
+                this.anims.pauseAll(); 
+                
+                this.time.delayedCall(100, () => {
+                    this.physics.world.resume();
+                    this.anims.resumeAll();
+                });
+
             } else if (enemy.texture.key === 'enemy_fast') {
+                // --- Fast Logic ---
                 this.audio.playSFX('hit_fast');
-                this.fx.explodeEnemy(enemy.x, enemy.y); // Use standard explosion for fast
+                this.fx.explodeEnemy(enemy.x, enemy.y); 
                 this.fx.vibrate(10);
+
             } else {
+                // --- Normal Logic ---
                 this.audio.playSFX('hit');
                 this.fx.explodeEnemy(enemy.x, enemy.y);
                 this.fx.vibrate(20);
             }
         }
+
+        // 2. NOW it is safe to destroy the object
+        enemy.destroy();
     }
 
     damageCore(enemy) {
@@ -178,6 +214,22 @@ class GameScene extends Phaser.Scene {
         this.score = Math.max(0, this.score - 500);
         this.ui.updateScore(this.score);
         this.ui.flashDamage();
+
+        // 1. Violent Shake
+        this.cameras.main.shake(300, 0.05); 
+        
+        // 2. Red Flash Overlay
+        this.cameras.main.flash(100, 255, 0, 0);
+
+        // 3. "Digital Tear" (Zoom Pump)
+        this.tweens.add({
+            targets: this.cameras.main,
+            zoom: 1.05,
+            yoyo: true,
+            duration: 50,
+            repeat: 3
+        });
+
         this.fx.damageEffect();
     }
 
@@ -199,7 +251,10 @@ class GameScene extends Phaser.Scene {
 
     activateBraveMode() {
         this.isBraveMode = true;
+        this.fx.matrixRain.start();
         this.tweens.add({ targets: this.braveOverlay, alpha: 0.2, duration: 200, yoyo: true });
+
+        this.audio.speak("Maximum Synchronization!", "brave");
         
         const modeText = this.add.text(400, 300, 'BRAVE MODE ACTIVATED', {
             fontFamily: 'Impact', fontSize: '48px', color: '#FFF'
@@ -214,12 +269,16 @@ class GameScene extends Phaser.Scene {
             this.braveMeter = 0;
             this.ui.updateBraveMeter(0, false);
             this.ui.react('idle');
+            this.fx.matrixRain.stop();
         });
     }
 
     updateTimer() {
         this.timeLeft--;
         this.ui.updateTimer(this.timeLeft);
+        if (this.timeLeft <= 5 && this.timeLeft > 0) {
+            this.audio.speak(this.timeLeft.toString());
+        }
         if (this.timeLeft <= 0) this.endGame();
     }
 
@@ -227,6 +286,8 @@ class GameScene extends Phaser.Scene {
         this.isPlaying = false;
         this.physics.pause();
         this.audio.stopMusic();
+        this.audio.speak("Session Terminated.", "critical");
+        this.handInput.stop();
         this.scene.start('ResultScene', { score: this.score });
     }
 }

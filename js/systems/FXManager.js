@@ -33,6 +33,33 @@ class FXManager {
             emitting: false,
             tint: COLORS.TERM_GREEN
         });
+
+        // Matrix Rain Emitter
+        this.matrixRain = this.scene.add.particles(0, 0, 'matrix_rain', {
+            // Spawn across the whole screen width
+            x: { min: 0, max: this.scene.scale.width }, 
+            
+            // Start slightly above screen so they fall IN naturally
+            y: -350, 
+            
+            // Falling Speed (The video is quite fast)
+            speedY: { min: 400, max: 700 }, 
+            
+            // Lifespan: Enough to hit the bottom (1000px distance / 400 speed ~ 2.5s)
+            lifespan: 3000, 
+            
+            // Vary the size slightly for depth
+            scale: { min: 0.8, max: 1.2 }, 
+            
+            // Fade them out as they reach the bottom
+            alpha: { start: 0.8, end: 0 }, 
+            
+            // Quantity: How dense? Lower number = More rain (Frequency in ms)
+            // 20ms = Very Heavy Rain. 50ms = Light Rain.
+            frequency: 30, 
+            
+            emitting: false // Start paused
+        }).setDepth(-1); // Behind everything
     }
 
     // Triggers

@@ -2,50 +2,115 @@ class ResultScene extends Phaser.Scene {
     constructor() { super('ResultScene'); }
 
     create(data) {
-        const cx = this.cameras.main.centerX;
-        const cy = this.cameras.main.centerY;
+        // Get dynamic screen dimensions
+        const width = this.scale.width;
+        const height = this.scale.height;
+        const cx = width / 2;
+        const cy = height / 2;
 
-        // Background Card
-        this.add.rectangle(cx, cy, 600, 450, 0x000000, 0.95).setStrokeStyle(2, COLORS.C9_BLUE);
+        // Dynamic Sizing Logic
+        // The card will take up 80% of width (max 600px) and 80% of height (max 500px)
+        const cardWidth = Math.min(600, width * 0.85);
+        const cardHeight = Math.min(500, height * 0.85);
 
-        // Header Text
-        this.add.text(cx, cy - 160, 'SESSION COMPLETE', {
-            fontFamily: 'Courier New', fontSize: '32px', color: '#FFF'
+        // Responsive Font Sizes (Scale based on height)
+        const headerSize = Math.max(24, height * 0.05);  // 5% of screen height
+        const scoreLabelSize = Math.max(14, height * 0.025);
+        const scoreSize = Math.max(48, height * 0.1);    // 10% of screen height
+
+        // 1. Background Card
+        this.add.rectangle(cx, cy, cardWidth, cardHeight, 0x000000, 0.95)
+            .setStrokeStyle(2, COLORS.C9_BLUE);
+
+        // 2. Header Text (Positioned relative to top of card)
+        const contentTop = cy - (cardHeight / 2) + (cardHeight * 0.15);
+        
+        this.add.text(cx, contentTop, 'SESSION COMPLETE', {
+            fontFamily: 'Courier New', 
+            fontSize: `${headerSize}px`, 
+            color: '#FFF'
         }).setOrigin(0.5);
 
-        // Score Section
-        this.add.text(cx, cy - 90, 'FINAL SCORE', { fontSize: '16px', color: '#888' }).setOrigin(0.5);
-        this.add.text(cx, cy - 50, data.score, {
-            fontFamily: 'Impact', fontSize: '64px', color: '#00AEEF'
+        // 3. Score Section
+        const scoreY = contentTop + (cardHeight * 0.15); // Push down slightly
+        
+        this.add.text(cx, scoreY, 'FINAL SCORE', { 
+            fontSize: `${scoreLabelSize}px`, 
+            color: '#888' 
+        }).setOrigin(0.5);
+        
+        this.add.text(cx, scoreY + (scoreLabelSize * 2), data.score, {
+            fontFamily: 'Impact', 
+            fontSize: `${scoreSize}px`, 
+            color: '#00AEEF'
         }).setOrigin(0.5);
 
-        // --- NEW: LOGO FOOTER ---
-        // Placing them at the bottom of the card (cy + 180)
-        // 1. Cloud9 Logo (Left)
-        this.add.image(cx - 80, cy + 180, 'logo_c9')
+        // 4. Logo Footer (Positioned relative to bottom of card)
+        const footerY = cy + (cardHeight / 2) - (cardHeight * 0.12);
+        const logoSpacing = cardWidth * 0.25; // Space logos based on card width
+
+        // Cloud9 Logo
+        this.add.image(cx - logoSpacing, footerY, 'logo_c9')
             .setOrigin(0.5)
-            .setScale(0.15); // Adjust this scale if needed
+            .setScale(Math.min(0.15, width * 0.0003)); // Scale relative to screen width
 
-        // 2. The 'x' separator
-        this.add.text(cx, cy + 180, 'x', { 
-            fontSize: '20px', color: '#555' 
+        // Separator 'x'
+        this.add.text(cx, footerY, 'x', { 
+            fontSize: `${Math.max(16, height * 0.03)}px`, 
+            color: '#555' 
         }).setOrigin(0.5);
 
-        // 3. JetBrains Logo (Right)
-        this.add.image(cx + 80, cy + 180, 'logo_jb')
+        // JetBrains Logo
+        this.add.image(cx + logoSpacing, footerY, 'logo_jb')
             .setOrigin(0.5)
-            .setScale(0.060); // Adjust this scale if needed
+            .setScale(Math.min(0.06, width * 0.00012));
 
-        // Call the form logic
-        this.createInputForm(cx, cy, data.score);
+        // 5. Create HTML Form
+        // We pass the dimensions so the HTML can also be responsive
+        this.createInputForm(cx, cy, cardWidth, cardHeight, data.score);
     }
 
-    createInputForm(cx, cy, score) {
-        // Create HTML Form
+    createInputForm(cx, cy, cardWidth, cardHeight, score) {
         const formDiv = document.createElement('div');
         formDiv.id = 'lead-capture-form';
-        // Added some top margin to push it below the score but above the logos
+        
+        // CSS allows us to center it absolutely over the canvas
+        // We set the top relative to the score position (approx 60% down the screen)
+        formDiv.style.position = 'absolute';
+        formDiv.style.left = '50%';
+        formDiv.style.top = '60%'; // Looks good on most screens
+        formDiv.style.transform = 'translate(-50%, -50%)';
+        formDiv.style.textAlign = 'center';
+        formDiv.style.width = '100%';
+
         formDiv.innerHTML = `
+            <style>
+                .terminal-input {
+                    background: transparent;
+                    border: none;
+                    border-bottom: 2px solid #00AEEF;
+                    color: #FFF;
+                    font-family: 'Courier New', monospace;
+                    font-size: clamp(16px, 4vw, 24px); /* Responsive Font */
+                    text-align: center;
+                    width: ${cardWidth * 0.6}px; /* 60% of card width */
+                    padding: 10px;
+                    outline: none;
+                }
+                .terminal-btn {
+                    margin-top: 20px;
+                    background: #00AEEF;
+                    border: none;
+                    color: #000;
+                    padding: 10px 20px;
+                    font-family: 'Impact', sans-serif;
+                    font-size: clamp(14px, 3vw, 20px);
+                    cursor: pointer;
+                    text-transform: uppercase;
+                }
+                .terminal-btn:hover { background: #FFF; }
+                .hidden { display: none; }
+            </style>
             <input type="text" id="player-tag" class="terminal-input" placeholder="ENTER ALIAS" maxlength="12" autocomplete="off">
             <br>
             <button id="commit-btn" class="terminal-btn">COMMIT SCORE</button>
@@ -54,6 +119,11 @@ class ResultScene extends Phaser.Scene {
 
         const btn = document.getElementById('commit-btn');
         const input = document.getElementById('player-tag');
+        
+        // Prevent keyboard from scrolling on mobile
+        input.addEventListener('focus', () => {
+             // Optional: Scroll to view if needed
+        });
         input.focus();
 
         const submitHandler = () => {
@@ -70,29 +140,22 @@ class ResultScene extends Phaser.Scene {
     }
 
     handleSubmission(alias, score, formDiv) {
-        // 1. Hide Form
         formDiv.classList.add('hidden');
 
-        // 2. Show "Uploading" Animation
-        const cx = this.cameras.main.centerX;
-        const cy = this.cameras.main.centerY;
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
         
-        // Feedback Text
-        const statusText = this.add.text(cx, cy + 50, '> UPLOADING TO CLOUD...', { 
+        const statusText = this.add.text(cx, cy + (this.scale.height * 0.1), '> UPLOADING TO CLOUD...', { 
             fontFamily: 'Courier New', fontSize: '18px', color: '#23D18B' 
         }).setOrigin(0.5);
 
-        // 3. SEND DATA TO GOOGLE SHEET
         fetch(API_URL, {
             method: 'POST',
-            mode: 'no-cors', // 'no-cors' is required for Google Scripts simple POSTs
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: alias, score: score })
         })
         .then(() => {
-            // 4. Success -> Transition
             statusText.setText('> UPLOAD COMPLETE.');
             this.time.delayedCall(1000, () => {
                 if (this.formElement) this.formElement.remove();
@@ -100,7 +163,6 @@ class ResultScene extends Phaser.Scene {
             });
         })
         .catch(err => {
-            // Fallback if internet fails
             console.error('Upload Failed', err);
             statusText.setText('> OFFLINE MODE SAVED.');
             this.time.delayedCall(1000, () => {

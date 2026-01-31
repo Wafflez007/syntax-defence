@@ -101,6 +101,39 @@ class BootScene extends Phaser.Scene {
         faceCanvas.height = 64;
         const fCtx = faceCanvas.getContext('2d');
 
+        // 8. NEW: Advanced Matrix Rain Texture
+        const codeCanvas = document.createElement('canvas');
+        // Make it tall (e.g., 300px) to create the "Trail" effect
+        codeCanvas.width = 32; 
+        codeCanvas.height = 300; 
+        const cCtx = codeCanvas.getContext('2d');
+
+        // Create a Gradient (Transparent Top -> Green Body -> White Head)
+        const grad = cCtx.createLinearGradient(0, 0, 0, 300);
+        grad.addColorStop(0, 'rgba(0, 255, 0, 0)');    // Top: Invisible
+        grad.addColorStop(0.4, 'rgba(0, 255, 0, 0.5)'); // Mid: Semi-transparent
+        grad.addColorStop(0.9, 'rgba(0, 255, 0, 1)');   // Bottom: Bright Green
+        grad.addColorStop(1, 'rgba(200, 255, 200, 1)'); // Head: White-ish
+
+        cCtx.fillStyle = grad;
+        cCtx.font = 'bold 22px monospace';
+        cCtx.textAlign = 'center';
+        cCtx.textBaseline = 'bottom';
+
+        // The "Matrix" Character Set (Katakana + Numbers)
+        // This is the secret to the "Authentic" look
+        const katakana = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+        const chars = katakana + "0123456789";
+
+        // Draw the column of characters
+        for (let y = 300; y > 0; y -= 22) {
+            const char = chars.charAt(Math.floor(Math.random() * chars.length));
+            cCtx.fillText(char, 16, y);
+        }
+
+        // Save as 'matrix_rain'
+        this.textures.addCanvas('matrix_rain', codeCanvas);
+
         // FRAME 1: IDLE (Standard Eyes) - [  ]  [  ]
         fCtx.fillStyle = '#23D18B'; // Terminal Green
         fCtx.fillRect(10, 20, 15, 25); // Left Eye
